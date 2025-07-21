@@ -51,6 +51,25 @@ function Index() {
   const [pageSize, setPageSize] = useState(10);
   const [cityFromId, setCityFromId] = useState(null);
   const [cityToId, setCityToId] = useState(null);
+  const [filterType, setFilterType] = useState(0);
+
+  const typeEnum = {
+    0: "",
+    1: "Bolman",
+    2: "Van",
+    3: "Servece",
+  };
+  const reverseTypeEnum = {
+    Bolman: 0,
+    Van: 1,
+    Servece: 2,
+  };
+
+  const typeEnumf = {
+    0: "Bolman",
+    1: "Van",
+    2: "Servece",
+  };
 
   const fetchCities = useCallback(async () => {
     try {
@@ -67,6 +86,7 @@ function Index() {
       const data = await getLines({
         CityFromId: cityFromId,
         CityToId: cityToId,
+        BusType: filterType,
         PageNumber: pageNumber + 1,
         PageSize: pageSize,
       });
@@ -76,7 +96,7 @@ function Index() {
       console.error(err);
       alert("Can't fetch lines");
     }
-  }, [cityFromId, cityToId, pageNumber, pageSize]);
+  }, [cityFromId, cityToId, filterType, pageNumber, pageSize]);
 
   useEffect(() => {
     fetchCities();
@@ -131,6 +151,12 @@ function Index() {
       flex: 1,
     },
     {
+      field: "busType",
+      headerName: "Bus Type",
+      flex: 1,
+      renderCell: (params) => <Box>{typeEnumf[params.value]}</Box>,
+    },
+    {
       field: "cost",
       headerName: "Cost",
       flex: 1,
@@ -167,6 +193,7 @@ function Index() {
       fromId: Number(line.fromId),
       toId: Number(line.toId),
       cost: Number(line.cost),
+      busType:Number(line.busType)
     });
     setOpenDialog(true);
   };
@@ -191,6 +218,7 @@ function Index() {
     const payload = {
       fromId: values.fromId,
       toId: values.toId,
+      busType: Number(values.busType),
       cost: Number(values.cost),
     };
 
@@ -200,6 +228,7 @@ function Index() {
           id: editLine.id,
           fromId: values.fromId,
           toId: values.toId,
+          busType: Number(values.busType),
           cost: Number(values.cost),
         });
       } catch (error) {
@@ -229,6 +258,7 @@ function Index() {
       fromId: Yup.number().required("Required"),
       toId: Yup.number().required("Required"),
       cost: Yup.number().required("Required").positive("Must be positive"),
+      busType:Yup.number().required(),
     }),
     onSubmit: handleSubmit,
     enableReinitialize: true,
@@ -253,6 +283,7 @@ function Index() {
         <Button
           variant="contained"
           onClick={() => {
+            console.log("adding!")
             setEditLine(null);
             formik.resetForm();
             setOpenDialog(true);
@@ -289,6 +320,54 @@ function Index() {
               <TextField
                 {...params}
                 placeholder="Search with city from name.."
+                variant="standard"
+                InputProps={{
+                  ...params.InputProps,
+                  disableUnderline: true,
+                  sx: {
+                    color: colors.grey[100],
+                    px: 1.5,
+                    py: 0.5,
+                  },
+                }}
+                sx={{
+                  width: "250px",
+                  "& input": {
+                    color: colors.grey[100],
+                  },
+                }}
+              />
+            )}
+            sx={{
+              flexGrow: 1,
+            }}
+          />
+          <IconButton type="button" sx={{ p: 1 }}>
+            <SearchIcon sx={{ color: colors.grey[100] }} />
+          </IconButton>
+        </Box>
+        <Box
+          display="flex"
+          alignItems="center"
+          backgroundColor={colors.primary[500]}
+          borderRadius="10px"
+          px={1}
+          py={0.5}
+        >
+          <Autocomplete
+            freeSolo
+            options={Object.values(typeEnum)}
+            value={typeEnum[filterType]}
+            onChange={(event, newValue) => {
+              const foundEntry = Object.entries(typeEnum).find(
+                ([, label]) => label === newValue
+              );
+              setFilterType(foundEntry ? parseInt(foundEntry[0]) : 0);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Search with bus type.."
                 variant="standard"
                 InputProps={{
                   ...params.InputProps,
@@ -476,6 +555,26 @@ function Index() {
               )}
             />
 
+            <Autocomplete
+              freeSolo
+              blurOnSelect
+              options={Object.values(typeEnum)}
+              value={typeEnum[formik.values.busType] || ""}
+              onChange={(e, value) => {
+                const num = reverseTypeEnum[value];
+                formik.setFieldValue("busType", num);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Type"
+                  margin="normal"
+                  fullWidth
+                  error={formik.touched.busType && Boolean(formik.errors.busType)}
+                  helperText={formik.touched.busType && formik.errors.busType}
+                />
+              )}
+            />
             <TextField
               sx={{ my: 2 }}
               label="Cost"

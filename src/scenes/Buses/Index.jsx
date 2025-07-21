@@ -359,7 +359,11 @@ const Index = () => {
       flex: 1,
       renderCell: (params) => <Box>{params.formattedValue.name}</Box>,
     },
-
+     {
+      field: "ownerPercent",
+      headerName: "Owner percent",
+      flex: 1,
+    },
     {
       field: "type",
       headerName: "Bus Type",
