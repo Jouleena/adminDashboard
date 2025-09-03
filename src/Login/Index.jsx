@@ -35,7 +35,7 @@ const Index = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     const { phoneNumber, password } = values;
-    const result = await login(phoneNumber, password);
+    const result = await login(phoneNumber, password, "default");
     if (result.success) {
       if (result.data.role === 1) {
         showMessage("Signed in successfully");
