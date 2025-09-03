@@ -5,17 +5,17 @@ export const AuthProvider = ({children}) => {
   const [isAuthenticated , setIsAuthenticated] = useState(false);
   const [user , setUser ] = useState({phonenumber:"",password:""});
   const [role , setRole] = useState("");
-  const login = async (phonenumber, password) => {
+  const login = async (phonenumber, password , fcmToken) => {
     try {
       const response = await axiosInstance.post("/api/v1.0/Account/login" , {
-        phonenumber , password , 
+        phonenumber , password , fcmToken
       })
       const {token , role} = response.data;
       const Token =localStorage.setItem("token",token);
       localStorage.setItem("role",role);
       setRole(role);
       setIsAuthenticated(true);
-      setUser({phonenumber:phonenumber , password: password});
+      setUser({phonenumber:phonenumber , password: password , fcmToken: fcmToken});
       return { success : true , data : response.data }
     } catch (error) {
       console.log(error);

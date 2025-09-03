@@ -5,9 +5,11 @@ import Header from "../../components/Header";
 //import { useLocation } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 // import { createFilterOptions } from "@mui/material/Autocomplete";
+//import Picker from "react-scroll-picker";
 import {
   Box,
   Typography,
+  Grid,
   useTheme,
   Select,
   MenuItem,
@@ -30,6 +32,9 @@ import { getAccounts } from "../../Apis/AccountApi";
 import * as Yup from "yup";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import { DigitalClock } from "@mui/x-date-pickers/DigitalClock";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useFormik } from "formik";
 const Index = () => {
   const theme = useTheme();
@@ -70,11 +75,54 @@ const Index = () => {
   const [inputOwnerPhone, setInputOwnerPhone] = useState(null);
   const [plateInput, setPlateInput] = useState("");
 
+  const [openTimeDialog, setOpenTimeDialog] = useState(false);
+  const [hours, setHours] = useState("00");
+  const [minutes, setMinutes] = useState("00");
+  const [seconds, setSeconds] = useState("00");
+
+  // const hoursList = [...Array(24).keys()].map((h) =>
+  //   String(h).padStart(2, "0")
+  // );
+  // const minutesList = [...Array(60).keys()].map((m) =>
+  //   String(m).padStart(2, "0")
+  // );
+  // const secondsList = [...Array(60).keys()].map((s) =>
+  //   String(s).padStart(2, "0")
+  // );
+const normalizeTime = (value, max) => {
+  let num = parseInt(value, 10);
+  if (isNaN(num) || num < 0) num = 0;
+  if (num > max) num = max;
+  return String(num).padStart(2, "0");
+};
   const plateOptions = useMemo(() => {
     const allPlates = buses.map((bus) => bus.plate);
     return [...new Set(allPlates)];
   }, [buses]);
 
+  const normalizeBuses = (buses) => {
+    return buses.map((bus) => ({
+      busId: bus.busId,
+      plate: bus.plate,
+      color: bus.color,
+      type: bus.type,
+      numberOfPassengers: bus.numberOfPassengers,
+      ownerPercent: bus.ownerPercent,
+      lineId: bus.lineId,
+
+      ownerId: bus.owner?.id ?? null,
+      ownerName: bus.owner?.name ?? "",
+
+      driverId: bus.driver?.id ?? null,
+      driverName: bus.driver?.name ?? "",
+
+      fromId: bus.from?.id ?? null,
+      fromName: bus.from?.name ?? "",
+
+      toId: bus.to?.id ?? null,
+      toName: bus.to?.name ?? "",
+    }));
+  };
   const fetchAccounts = async (searchText) => {
     try {
       const data = await getAccounts({
@@ -127,7 +175,7 @@ const Index = () => {
         PageNumber: pageNumber + 1,
         PageSize: pageSize,
       });
-      setBuses(data.content);
+      setBuses(normalizeBuses(data.content));
       console.log(data.content);
       setTotalPages(data.totalPages);
     } catch (err) {
@@ -219,7 +267,7 @@ const Index = () => {
       alert("Failed to add line");
     }
   };
-
+  //numberOfPassengers
   const handleSubmit = async (values, { resetForm }) => {
     console.log(values.from);
     console.log(values.to);
@@ -228,6 +276,8 @@ const Index = () => {
     const color = String(values.color);
     const accountId = Number(values.ownerNumber);
     const typeNumber = Number(values.type);
+    const nop = String(values.numberOfPassengers);
+    const estimatedTime = String(values.estimatedTime);
 
     if (!accountId) {
       resetForm();
@@ -270,6 +320,8 @@ const Index = () => {
       lineId: lineId,
       type: typeNumber,
       accountId: accountId,
+      numberOfPassengers: nop,
+      estimatedTime: estimatedTime,
     };
 
     console.log("Bus Payload:", busPayload);
@@ -292,6 +344,8 @@ const Index = () => {
       to: null,
       type: "",
       ownerNumber: "",
+      numberOfPassengers: "",
+      estimatedTime: "",
     },
     enableReinitialize: true,
     validationSchema: Yup.object({
@@ -301,6 +355,10 @@ const Index = () => {
       to: Yup.mixed().required("To is required"),
       type: Yup.string().required("Type is required"),
       ownerNumber: Yup.string().required("Owner number is required"),
+      numberOfPassengers: Yup.string().required(
+        "Number of passengers is required"
+      ),
+      estimatedTime: Yup.string().required("estimatedTime is required"),
     }),
     onSubmit: handleSubmit,
   });
@@ -316,8 +374,19 @@ const Index = () => {
   };
 
   const columns = [
-    { field: "busId", headerName: "BUS ID" },
-    { field: "ownerId", headerName: "OWNER ID" },
+    { field: "busId", headerName: "BUS ID", flex: 1 },
+    {
+      field: "ownerId",
+      headerName: "OWNER ID",
+      flex: 1,
+      //renderCell: (params) => <Box>{params.formattedValue.id} </Box>,
+    }, //updated
+    {
+      field: "ownerName",
+      headerName: "OWNER Name",
+      flex: 1,
+      //renderCell: (params) => <Box>{params.formattedValue.name}</Box>,
+    }, //updated
     {
       field: "driverId",
       headerName: "DRIVER ID",
@@ -332,7 +401,7 @@ const Index = () => {
       headerName: "Driver name",
       flex: 1,
       renderCell: (params) => {
-        if (params.value) {
+        if (params.value !== "") {
           return <Box>{params.value}</Box>;
         } else return <Box>-</Box>;
       },
@@ -348,23 +417,37 @@ const Index = () => {
       flex: 1,
     },
     {
-      field: "from",
+      field: "fromName",
       headerName: "From",
       flex: 1,
-      renderCell: (params) => <Box>{params.formattedValue.name}</Box>,
+      //renderCell: (params) => <Box>{params.formattedValue.name}</Box>,
     },
     {
-      field: "to",
+      field: "toName",
       headerName: "To",
       flex: 1,
-      renderCell: (params) => <Box>{params.formattedValue.name}</Box>,
+      //renderCell: (params) => <Box>{params.formattedValue.name}</Box>,
     },
-
+    {
+      field: "ownerPercent",
+      headerName: "Owner percent",
+      flex: 1,
+    },
+    {
+      field: "lineId",
+      headerName: "Line Id",
+      flex: 1,
+    },
     {
       field: "type",
       headerName: "Bus Type",
       flex: 1,
       renderCell: (params) => <Box>{typeEnumf[params.value]}</Box>,
+    },
+    {
+      field: "numberOfPassengers",
+      headerName: "Number of passengers",
+      flex: 1,
     },
     {
       field: "actions",
@@ -784,6 +867,38 @@ const Index = () => {
                 />
               )}
             />
+            <TextField
+              label="Number of passengers"
+              name="numberOfPassengers"
+              fullWidth
+              margin="normal"
+              value={formik.values.numberOfPassengers}
+              onChange={formik.handleChange}
+              error={
+                formik.touched.numberOfPassengers &&
+                Boolean(formik.errors.numberOfPassengers)
+              }
+              helperText={
+                formik.touched.numberOfPassengers &&
+                formik.errors.numberOfPassengers
+              }
+            />
+            <TextField
+              label="Estimated Time"
+              name="estimatedTime"
+              fullWidth
+              margin="normal"
+              value={formik.values.estimatedTime}
+              InputProps={{ readOnly: true }}
+              onClick={() => setOpenTimeDialog(true)}
+              error={
+                formik.touched.estimatedTime &&
+                Boolean(formik.errors.estimatedTime)
+              }
+              helperText={
+                formik.touched.estimatedTime && formik.errors.estimatedTime
+              }
+            />
           </DialogContent>
           <DialogActions>
             <Button
@@ -913,6 +1028,81 @@ const Index = () => {
             sx={{ background: `${colors.blueAccent[400]}` }}
           >
             Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openTimeDialog} onClose={() => setOpenTimeDialog(false)}>
+        <DialogTitle>Pick Time</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} justifyContent="center">
+            {/* Hours */}
+            <Grid item>
+               
+              <TextField
+              label="HH"
+              name="hours"
+              //fullWidth
+              margin="normal"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              inputProps={{ maxLength: 2 }}
+              sx={{
+                width:"50px"
+              }}
+              // error={formik.touched.plate && Boolean(formik.errors.plate)}
+              // helperText={formik.touched.plate && formik.errors.plate}
+            />
+            </Grid>
+
+            {/* Minutes */}
+            <Grid item>
+               
+              <TextField
+              label="MM"
+              name="minutes"
+              //fullWidth
+              margin="normal"
+              value={minutes}
+              onChange={(e) =>{
+                 setMinutes(e.target.value)
+                }}
+              inputProps={{ maxLength: 2 }}
+               sx={{
+                width:"50px"
+              }}
+            /> 
+            </Grid>
+
+            {/* Seconds */}
+            <Grid item>
+              <TextField
+              label="SS"
+              name="seconds"
+              margin="normal"
+              value={seconds}
+              onChange={(e) => setSeconds(e.target.value)}
+              inputProps={{ maxLength: 2 }}
+              sx={{
+                width:"50px",
+              }}
+            /> 
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenTimeDialog(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              formik.setFieldValue(
+                "estimatedTime",
+                `${normalizeTime(hours, 23)}:${normalizeTime(minutes, 59)}:${normalizeTime(seconds, 59)}`
+              );
+              setOpenTimeDialog(false);
+            }}
+            variant="contained"
+          >
+            OK
           </Button>
         </DialogActions>
       </Dialog>

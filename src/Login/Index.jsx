@@ -34,8 +34,8 @@ const Index = () => {
   };
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    const { PhoneNumber, Password } = values;
-    const result = await login(PhoneNumber, Password);
+    const { phoneNumber, password } = values;
+    const result = await login(phoneNumber, password, "default");
     if (result.success) {
       if (result.data.role === 1) {
         showMessage("Signed in successfully");
@@ -80,10 +80,10 @@ const Index = () => {
         </Typography>
 
         <Formik
-          initialValues={{ PhoneNumber: "", Password: "" }}
+          initialValues={{ phoneNumber: "", password: "" }}
           validationSchema={Yup.object({
-            PhoneNumber: Yup.string().required(),
-            Password: Yup.string().required(),
+            phoneNumber: Yup.string().required(),
+            password: Yup.string().required(),
           })}
           onSubmit={handleSubmit}
         >
@@ -93,11 +93,11 @@ const Index = () => {
                 fullWidth
                 variant="outlined"
                 label="Phone number"
-                name="PhoneNumber"
-                value={values.PhoneNumber}
+                name="phoneNumber"
+                value={values.phoneNumber}
                 onChange={handleChange}
-                error={touched.PhoneNumber && !!errors.PhoneNumber}
-                helperText={touched.PhoneNumber && errors.PhoneNumber}
+                error={touched.phoneNumber && !!errors.phoneNumber}
+                helperText={touched.phoneNumber && errors.phoneNumber}
                 margin="normal"
               />
               <TextField
@@ -105,11 +105,11 @@ const Index = () => {
                 variant="outlined"
                 label="Password"
                 type="password"
-                name="Password"
-                value={values.Password}
+                name="password"
+                value={values.password}
                 onChange={handleChange}
-                error={touched.Password && !!errors.Password}
-                helperText={touched.Password && errors.Password}
+                error={touched.password && !!errors.password}
+                helperText={touched.password && errors.password}
                 margin="normal"
               />
               <Button
