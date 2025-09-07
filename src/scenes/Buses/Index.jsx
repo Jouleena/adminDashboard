@@ -4,8 +4,7 @@ import { tokens } from "../../theme";
 import Header from "../../components/Header";
 //import { useLocation } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
-// import { createFilterOptions } from "@mui/material/Autocomplete";
-//import Picker from "react-scroll-picker";
+import WheelTimePicker from "../../components/WheelTimePicker";
 import {
   Box,
   Typography,
@@ -46,7 +45,6 @@ const Index = () => {
   const [cities, setCities] = useState([]);
   const [citiesFrom, setCitiesFrom] = useState([]);
   const [citiesTo, setCitiesTo] = useState([]);
-  // const [lines, setLines] = useState([]);
 
   const [linedes, setLinedes] = useState("");
   const [newCityNameArabic, setNewCityNameArabic] = useState("");
@@ -60,7 +58,6 @@ const Index = () => {
   const [openCityDialog, setOpenCityDialog] = useState(false);
   const [openLineDialog, setOpenLineDialog] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
-  //const formikRef = useRef();
 
   const [totalPages, setTotalPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(0);
@@ -76,25 +73,14 @@ const Index = () => {
   const [plateInput, setPlateInput] = useState("");
 
   const [openTimeDialog, setOpenTimeDialog] = useState(false);
-  const [hours, setHours] = useState("00");
-  const [minutes, setMinutes] = useState("00");
-  const [seconds, setSeconds] = useState("00");
 
-  // const hoursList = [...Array(24).keys()].map((h) =>
-  //   String(h).padStart(2, "0")
-  // );
-  // const minutesList = [...Array(60).keys()].map((m) =>
-  //   String(m).padStart(2, "0")
-  // );
-  // const secondsList = [...Array(60).keys()].map((s) =>
-  //   String(s).padStart(2, "0")
-  // );
-const normalizeTime = (value, max) => {
-  let num = parseInt(value, 10);
-  if (isNaN(num) || num < 0) num = 0;
-  if (num > max) num = max;
-  return String(num).padStart(2, "0");
-};
+  const stringToDate = (str) => {
+    const [h, m, s] = str.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, s, 0);
+    return d;
+  };
+
   const plateOptions = useMemo(() => {
     const allPlates = buses.map((bus) => bus.plate);
     return [...new Set(allPlates)];
@@ -188,14 +174,6 @@ const normalizeTime = (value, max) => {
     fetchBuses();
   }, [fetchBuses]);
 
-  // useEffect(() => {
-  //   fetchLines();
-  // }, [fetchLines]);
-
-  // useEffect(() => {
-  //   fetchCities();
-  // }, [fetchCities]);
-
   const typeEnum = {
     0: "",
     1: "Bolman",
@@ -213,13 +191,6 @@ const normalizeTime = (value, max) => {
     1: "Van",
     2: "Servece",
   };
-  // const findCityId = (name) => {
-  //   const c = cities.find(
-  //     (c) => c?.englishName.toLowerCase().trim() === name.toLowerCase().trim()
-  //   )?.id;
-  //   console.log(c + "c");
-  //   return c;
-  // };
 
   const handleAddCity = async () => {
     try {
@@ -229,7 +200,6 @@ const normalizeTime = (value, max) => {
         cityId: newCityParentId,
       });
 
-      //formik.setFieldValue()
       const addedCity = await fetchCities(newCityNameEnglish);
       console.log(addedCity);
       formik.setFieldValue(linedes, addedCity?.[0]);
@@ -1035,71 +1005,26 @@ const normalizeTime = (value, max) => {
       <Dialog open={openTimeDialog} onClose={() => setOpenTimeDialog(false)}>
         <DialogTitle>Pick Time</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} justifyContent="center">
-            {/* Hours */}
-            <Grid item>
-               
-              <TextField
-              label="HH"
-              name="hours"
-              //fullWidth
-              margin="normal"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              inputProps={{ maxLength: 2 }}
-              sx={{
-                width:"50px"
-              }}
-              // error={formik.touched.plate && Boolean(formik.errors.plate)}
-              // helperText={formik.touched.plate && formik.errors.plate}
-            />
-            </Grid>
-
-            {/* Minutes */}
-            <Grid item>
-               
-              <TextField
-              label="MM"
-              name="minutes"
-              //fullWidth
-              margin="normal"
-              value={minutes}
-              onChange={(e) =>{
-                 setMinutes(e.target.value)
-                }}
-              inputProps={{ maxLength: 2 }}
-               sx={{
-                width:"50px"
-              }}
-            /> 
-            </Grid>
-
-            {/* Seconds */}
-            <Grid item>
-              <TextField
-              label="SS"
-              name="seconds"
-              margin="normal"
-              value={seconds}
-              onChange={(e) => setSeconds(e.target.value)}
-              inputProps={{ maxLength: 2 }}
-              sx={{
-                width:"50px",
-              }}
-            /> 
-            </Grid>
-          </Grid>
+          <WheelTimePicker
+            value={
+              formik.values.estimatedTime
+                ? stringToDate(formik.values.estimatedTime)
+                : new Date()
+            }
+            onChange={(val) => {
+              // val = "HH:MM:SS"
+              formik.setFieldValue("estimatedTime", val);
+            }}
+            height={200}
+            rowHeight={40}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenTimeDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenTimeDialog(false)}
+            sx={{ color: `${colors.blueAccent[400]}` }} >Cancel</Button>
           <Button
-            onClick={() => {
-              formik.setFieldValue(
-                "estimatedTime",
-                `${normalizeTime(hours, 23)}:${normalizeTime(minutes, 59)}:${normalizeTime(seconds, 59)}`
-              );
-              setOpenTimeDialog(false);
-            }}
+            sx={{ background: `${colors.blueAccent[400]}` }}
+            onClick={() => setOpenTimeDialog(false)}
             variant="contained"
           >
             OK
