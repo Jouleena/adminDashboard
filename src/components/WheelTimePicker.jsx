@@ -1,23 +1,25 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-//*this function returns the date as an object,
-//  in order to send it to server you need to cut the time only from it,
-//  and send it as string*//
+import { tokens } from "../theme";
+import { useTheme } from "@mui/material";
+
 export default function WheelTimePicker({
   value = new Date(),
   onChange = () => {},
-  height = 200,      
-  rowHeight = 40,    
+  height = 200,
+  rowHeight = 40,
 }) {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
   const [time, setTime] = useState(value);
 
   const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
-  const mins  = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
-  const secs  = mins;
+  const mins = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
+  const secs = mins;
 
   const hRef = useRef(null);
   const mRef = useRef(null);
   const sRef = useRef(null);
-
+  const scrollTimeout = useRef();
 
   const scrollToIndex = (ref, idx) => {
     if (!ref.current) return;
@@ -25,18 +27,22 @@ export default function WheelTimePicker({
     ref.current.scrollTo({ top, behavior: "smooth" });
   };
 
- 
   useEffect(() => {
     scrollToIndex(hRef, time.getHours());
     scrollToIndex(mRef, time.getMinutes());
     scrollToIndex(sRef, time.getSeconds());
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  
   const nearestIndex = (scrollTop) => Math.round(scrollTop / rowHeight);
 
-  
+  const formatTime = (date) => {
+    const h = String(date.getHours()).padStart(2, "0");
+    const m = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  };
+
   const handleScroll = (unit) => (e) => {
     const idx = nearestIndex(e.currentTarget.scrollTop);
     const t = new Date(time);
@@ -46,11 +52,9 @@ export default function WheelTimePicker({
     setTime(t);
   };
 
- 
-  let scrollTimeout;
   const handleScrollEnd = (ref, unit) => () => {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
+    clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
       const el = ref.current;
       if (!el) return;
       const idx = nearestIndex(el.scrollTop);
@@ -60,11 +64,10 @@ export default function WheelTimePicker({
       if (unit === "m") t.setMinutes(idx);
       if (unit === "s") t.setSeconds(idx);
       setTime(t);
-      onChange?.(t);
+      onChange?.(formatTime(t));
     }, 100);
   };
 
-  
   const handleClickItem = (ref, unit, idx) => () => {
     scrollToIndex(ref, idx);
     const t = new Date(time);
@@ -72,7 +75,7 @@ export default function WheelTimePicker({
     if (unit === "m") t.setMinutes(idx);
     if (unit === "s") t.setSeconds(idx);
     setTime(t);
-    onChange?.(t);
+    onChange?.(formatTime(t));
   };
 
   const colStyle = {
@@ -88,7 +91,7 @@ export default function WheelTimePicker({
     paddingBottom: `${(height - rowHeight) / 2}px`,
     borderRadius: "16px",
     background:
-      "linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.04))",
+      "linear-gradient(180deg, rgba(245, 5, 5, 0.04), rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.04))",
   };
 
   const listStyle = { margin: 0, padding: 0, listStyle: "none" };
@@ -112,7 +115,6 @@ export default function WheelTimePicker({
     textTransform: "uppercase",
   };
 
-  
   const CenterLine = () => (
     <div
       style={{
@@ -122,23 +124,24 @@ export default function WheelTimePicker({
         right: 0,
         top: (height - rowHeight) / 2,
         height: rowHeight,
-        borderTop: "2px solid #1976d2",
-        borderBottom: "2px solid #1976d2",
+        borderTop: `2px solid ${colors.blueAccent[400]}`,
+        borderBottom: `2px solid ${colors.blueAccent[400]}`,
         boxShadow: "inset 0 0 12px rgba(25,118,210,0.08)",
         borderRadius: 12,
       }}
     />
   );
 
-//** */
   const renderList = (arr, ref, unit, selected) => (
     <div style={{ position: "relative" }}>
-        <div style={colStyle}
-           ref={ref}
-           onScroll={handleScroll(unit)}
-           onWheel={handleScrollEnd(ref, unit)}
-           onTouchEnd={handleScrollEnd(ref, unit)}
-           onMouseUp={handleScrollEnd(ref, unit)}>
+      <div
+        style={colStyle}
+        ref={ref}
+        onScroll={handleScroll(unit, ref)}
+        onWheel={handleScrollEnd(ref, unit)}
+        onTouchEnd={handleScrollEnd(ref, unit)}
+        onMouseUp={handleScrollEnd(ref, unit)}
+      >
         <ul style={listStyle}>
           {arr.map((n) => (
             <li
@@ -168,8 +171,7 @@ export default function WheelTimePicker({
         margin: "0 auto",
         padding: 16,
         borderRadius: 24,
-        background:
-          "linear-gradient(145deg, rgba(33,150,243,0.06), rgba(33,203,243,0.06))",
+        background:`${colors.primary[500]}`,
         boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
       }}
     >
@@ -192,43 +194,37 @@ export default function WheelTimePicker({
         {time.toLocaleTimeString()}
       </div>
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          justifyContent: "center",
+          marginTop: 12,
+        }}
+      >
         <button
           onClick={() => {
             const t = new Date();
             setTime(t);
-            onChange?.(t);
+            onChange?.(formatTime(t));
             scrollToIndex(hRef, t.getHours());
             scrollToIndex(mRef, t.getMinutes());
             scrollToIndex(sRef, t.getSeconds());
           }}
           style={{
             padding: "8px 14px",
-            borderRadius: 12,
+            borderRadius: 3,
             border: "none",
-            fontWeight: 700,
-            background:
-              "linear-gradient(135deg, #2196f3, #21cbf3)",
+            //fontWeight: 700,
+            background: ` ${colors.blueAccent[400]}`,
+            boxShadow: "inset 0 0 12px rgba(25,118,210,0.08)",
             color: "#fff",
             cursor: "pointer",
           }}
         >
           Now
         </button>
-        <button
-          onClick={() => onChange?.(time)}
-          style={{
-            padding: "8px 14px",
-            borderRadius: 12,
-            border: "1px solid #1976d2",
-            background: "#fff",
-            color: "#1976d2",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          Done
-        </button>
+        
       </div>
     </div>
   );
